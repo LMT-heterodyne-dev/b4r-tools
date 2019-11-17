@@ -1,2 +1,2 @@
-# B4Rpipe
-:rocket: Pipeline for B4R/LMT data.
+# b4r-tools
+:rocket:Tools for B4R/LMT data reduction.
