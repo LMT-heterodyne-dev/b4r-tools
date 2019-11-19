@@ -11,3 +11,8 @@ $ pip install pipenv
 $ pipenv install
 $ pipenv -venv
 ```
+
+You need to change parameters in b4rtolls. Then,
+```terminal
+$ ./b4rtools
+```
