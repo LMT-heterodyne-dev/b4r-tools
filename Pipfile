@@ -17,6 +17,7 @@ bokeh = "*"
 PySimpleGUI = "*"
 netcdf4 = "*"
 python-casacore = "*"
+decode = "*"
 
 [dev-packages]
 
