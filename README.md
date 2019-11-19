@@ -10,5 +10,4 @@ $ cd b4r-tools
 $ pip install pipenv
 $ pipenv install
 $ pipenv -venv
-
 ```
