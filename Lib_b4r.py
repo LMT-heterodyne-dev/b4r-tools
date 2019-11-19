@@ -509,17 +509,24 @@ def PointingINFO(path_sci,path_ant,CASAoffset=3506716797.,cal=True):
 ################################################################################
 # loadB4Rdata
 
-def loadB4Rdata(path_cal_raw,path_sci_raw,path_ant,sideband,cal=True,blsub=False):
+def loadB4Rdata(path_cal_raw,path_sci_raw,path_ant,sideband,cal=True,blsub=False,qlook=False,Tsys_qlook=200.):
 
 	# modules
 	import xarray as xr
+	import fmflow as fm
 
 	# load
-	path_cal, path_sci = pathOFnc(path_cal_raw,path_sci_raw)
 	freq = create_freq(path_ant,sideband)
 
-	Tsys, Tsys_time = cal_Tsys_from_rawdata_R(path_cal,path_ant,freq)
-	P = read_rawdata_science(path_sci,freq,timestampFlag=True,Tsys=Tsys,cal=cal)
+	if qlook:
+		path_cal_dammy, path_sci = pathOFnc(path_sci_raw+'.nc',path_sci_raw)
+		Tsys = fm.array(np.full([1,32768],Tsys_qlook))[0]
+		Tsys_time = 5.0e9
+		P = read_rawdata_science(path_sci,freq,timestampFlag=True,Tsys=Tsys,cal=cal)
+	else:
+		path_cal, path_sci = pathOFnc(path_cal_raw,path_sci_raw)
+		Tsys, Tsys_time = cal_Tsys_from_rawdata_R(path_cal,path_ant,freq)
+		P = read_rawdata_science(path_sci,freq,timestampFlag=True,Tsys=Tsys,cal=cal)
 
 	if blsub:
 		for no in np.unique(P.scanno):
