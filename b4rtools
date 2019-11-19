@@ -1,0 +1,7 @@
+#!/bin/sh
+export B4RTOOLS_PATH=/home/tescam/b4r/qlook
+export B4RDATA_PATH=/home/tescam/b4r/log
+export B4RDATA_RSYNC_LOC=/home/tescam/b4r/bin/rsync_from_b4r1_temp.sh
+
+# need to change
+#${path to python}/bin/python ${B4RTOOLS_PATH}/b4rtools.py
