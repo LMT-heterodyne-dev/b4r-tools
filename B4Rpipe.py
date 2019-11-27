@@ -11,10 +11,10 @@ import os
 parser = OptionParser()
 parser.add_option("-s", "--sci", dest="sci", help="write Science FILENAME", metavar="SCIFILE")
 parser.add_option("-c", "--cal", dest="cal", help="write Clibration FILENAME", metavar="CALFILE")
-parser.add_option("-n", "--nchbin", dest="chbin", help="numer of channel for binning", metavar="CALFILE")
-parser.add_option("-a", "--antlog", dest="antlog", help="write Antenna log FILENAME", metavar="CALFILE")
-parser.add_option("-o", "--output", dest="output", help="write output MS2 FILENAME", metavar="CALFILE")
-parser.add_option("-t", "--obstype", dest="obstype", help="write obstype (cont or spec)", metavar="CALFILE")
+parser.add_option("-n", "--nchbin", dest="chbin", help="numer of channel for binning", metavar="NCHBIN")
+parser.add_option("-a", "--antlog", dest="antlog", help="write Antenna log FILENAME", metavar="ANTLOG")
+parser.add_option("-o", "--output", dest="output", help="write output MS2 FILENAME", metavar="OUTPUT")
+parser.add_option("-t", "--obstype", dest="obstype", help="write obstype (cont or spec)", metavar="OBSTYPE")
 
 (options, args) = parser.parse_args()
 
