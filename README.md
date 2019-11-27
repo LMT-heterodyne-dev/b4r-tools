@@ -12,7 +12,7 @@ $ pipenv install
 $ pipenv -venv
 ```
 
-You need to change parameters in b4rtolls. Then,
+You need to change parameters in b4rtools. Then,
 ```terminal
 $ ./b4rtools
 ```
