@@ -389,21 +389,25 @@ def cal_Tsys_from_rawdata_R(path_cal,path_ant,freq,CASAoffset=3506716797.):
 
 def getOBSinfo(path_ant):
 
-    # modules
-    import xarray as xr
+	# modules
+	import xarray as xr
 
-    ant = xr.open_dataset(path_ant)
-    sourcename_ = ant['Header.Source.SourceName'].copy().values.astype('|U')
-    sourcename = np.array([sourcename_,sourcename_])[0].replace(' ','')
-    ra = ant['Header.Source.Ra'].copy().values[0]/np.pi*180.
-    dec = ant['Header.Source.Dec'].copy().values[0]/np.pi*180.
-    sysvel = ant['Header.Source.Velocity'].copy().values + 0.
-    project_ = ant['Header.Dcs.ProjectId'].copy().values.astype('|U')
-    project = np.array([project_,project_])[0].replace(' ','')
-    observer_ = ant['Header.Telescope.Operator'].copy().values.astype('|U')
-    observer = np.array([observer_,observer_])[0].replace(' ','')
+	ant = xr.open_dataset(path_ant)
+	try:
+		sourcename_ = ant['Header.Source.SourceName'].copy().values.astype('|U')
+		sourcename = np.array([sourcename_,sourcename_])[0].replace(' ','')
+	except:
+		sourcename_ = ''
+		sourcename = ''
+	ra = ant['Header.Source.Ra'].copy().values[0]/np.pi*180.
+	dec = ant['Header.Source.Dec'].copy().values[0]/np.pi*180.
+	sysvel = ant['Header.Source.Velocity'].copy().values + 0.
+	project_ = ant['Header.Dcs.ProjectId'].copy().values.astype('|U')
+	project = np.array([project_,project_])[0].replace(' ','')
+	observer_ = ant['Header.Telescope.Operator'].copy().values.astype('|U')
+	observer = np.array([observer_,observer_])[0].replace(' ','')
 
-    return ra,dec,sysvel,sourcename,project,observer
+	return ra,dec,sysvel,sourcename,project,observer
 
 # end getOBSinfo
 ################################################################################
