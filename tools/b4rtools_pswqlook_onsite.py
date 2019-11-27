@@ -20,63 +20,76 @@ def makelogfile(inputlogfile,obsid,calid,chbin_in):
 	np.save(inputlogfile,inputfiles)
 
 def updateSymlinks(path_xffts_teslx6,path_xffts_links_teslx6):
-    import os
-    import re
-    import struct
+	#print(path_xffts_teslx6)
+	#print(path_xffts_links_teslx6)
+	import os
+	import re
+	import struct
 
-    XFFTS_DIR = os.path.expanduser(path_xffts_teslx6)
-    LINKS_DIR = os.path.expanduser(path_xffts_links_teslx6)
-    os.system('mkdir -p '+LINKS_DIR)
-    XFFTS_PATTERN = r"^xffts20[0-9]{12}\.xfftsx\.0[1-4]$"
+	if path_xffts_teslx6[-1] == '/':
+		path_xffts_teslx6 = path_xffts_teslx6[:-1]
+	if path_xffts_links_teslx6[-1] == '/':
+		path_xffts_links_teslx6 = path_xffts_links_teslx6[:-1]
 
-    def is_exists(path):
-        """"""
-        path = os.path.expanduser(path)
+	#XFFTS_DIR = os.path.expanduser(path_xffts_teslx6)
+	#LINKS_DIR = os.path.expanduser(path_xffts_links_teslx6)
+	XFFTS_DIR = path_xffts_teslx6
+	LINKS_DIR = path_xffts_links_teslx6
+	#print(XFFTS_DIR)
+	#print(LINKS_DIR)
+	os.system('mkdir -p '+LINKS_DIR)
+	XFFTS_PATTERN = r"xffts201911[0-9]{8}\.xfftsx\.0[1-4]$"
+	#XFFTS_PATTERN = r"xffts2019*xfftsx*0[1-4]"
 
-        if not os.path.exists(path):
-            raise FileNotFoundError("{path}: not found".format(path=path))
+	def is_exists(path):
+	    """"""
+	    path = os.path.expanduser(path)
 
-        return path
+	    if not os.path.exists(path):
+	        raise FileNotFoundError("{path}: not found".format(path=path))
+
+	    return path
 
 
-    def create_symlink(path):
-        """
-        """
-        path = is_exists(path)
+	def create_symlink(path):
+		"""
+		"""
+		path = is_exists(path)
+		#print(path)
 
-        with open(path, "rb") as f:
-            f.seek(32)
-            obsnum_bin = f.read(8)
+		with open(path, "rb") as f:
+		    f.seek(32)
+		    obsnum_bin = f.read(8)
 
-        try:
-            obsnum = struct.Struct("q").unpack(obsnum_bin)[0]
-        except struct.error:
-            obsnum = "no_lmt"
+		try:
+		    obsnum = struct.Struct("q").unpack(obsnum_bin)[0]
+		except struct.error:
+		    obsnum = "no_lmt"
 
-        fname = os.path.basename(path)
-        #new_fname = "{obsnum}_{fname}".format(obsnum=obsnum, fname=fname)
-        new_fname = str(obsnum).zfill(6) + '_' + fname
+		fname = os.path.basename(path)
+		#new_fname = "{obsnum}_{fname}".format(obsnum=obsnum, fname=fname)
+		new_fname = str(obsnum).zfill(6) + '_' + fname
 
-        new_path = os.path.expanduser(
-            "{links_dir}/{new_fname}".format(
-                links_dir=LINKS_DIR,
-                new_fname=new_fname
-            )
-        )
+		new_path = os.path.expanduser(
+		    "{links_dir}/{new_fname}".format(
+		        links_dir=LINKS_DIR,
+		        new_fname=new_fname
+		    )
+		)
 
-        try:
-            os.symlink(path, new_path)
-            #os.system('ln -sf '+path+' '+new_path)
-        except OSError:
-            # rprint("{new_path}: already exists".format(new_path=new_path))
-            pass
+		try:
+		    os.symlink(path, new_path)
+		    #os.system('ln -sf '+path+' '+new_path)
+		except OSError:
+		    # rprint("{new_path}: already exists".format(new_path=new_path))
+		    pass
 
-        return
+		return
 
-    pattern = re.compile(XFFTS_PATTERN)
-    for xffts in os.listdir(XFFTS_DIR):
-        if pattern.match(xffts):
-            create_symlink(XFFTS_DIR + "/" + xffts)
+	pattern = re.compile(XFFTS_PATTERN)
+	for xffts in os.listdir(XFFTS_DIR):
+	    #if pattern.match(xffts):
+		create_symlink(XFFTS_DIR + "/" + os.path.basename(xffts))
 
 
 
@@ -151,7 +164,17 @@ def plotspec(path_sci_head,path_cal_head,path_ant,chbin,obsid):
 		plt.step(Pmean['fsig'],Pmean-median) #blsub
 		plt.xlabel('Frequency [GHz]')
 		plt.ylabel(r'Ta$^*$ [K]')
-		plt.ylim(-5*rms,Pmean.max()+rms)
+		if Pmean.max()+rms > 0.:
+
+			#plt.ylim(-5*rms,Pmean.max()+rms)
+			plt.ylim(-5*rms,15*rms)
+		else:
+			plt.ylim(-5*rms,5*rms)
+
+		data_out = np.vstack([Pmean['fsig'].copy().values,(Pmean-median).copy().values])
+		os.system('mkdir -p '+os.path.abspath(b4rtools_path)+'/log_qlookpsw_dat/')
+		np.savetxt(os.path.abspath(b4rtools_path)+'/log_qlookpsw_dat/ID'+str(obsid)+' '+sourcename+' Pol:'+Pol+' Sideband:'+sideband+'ch'+str(chbin)+'.dat',data_out)
+
 
 	fig = plt.gcf()
 	return fig, integtime, Tsys_value
@@ -204,13 +227,13 @@ def plotspecall(fig,integtime,Tsys_value,obsid,chbin):
 
     window.close()
 
-def main(path_xffts_teslx6,path_lmttpm_teslx6,xffts_links_name='xffts_links'):
+def main(path_xffts_teslx6,path_lmttpm_teslx6,xffts_links_name='_links'):
 	chbin_in = '1'
 	obsid = '77777'
 	calid = '77778'
 	inputlogfile = b4rtools_path+'/.b4rtools.pswqlook.onsite.input.npy'
 
-	path_xffts_links_teslx6 = os.path.dirname(path_xffts_teslx6) + '/' + xffts_links_name
+	path_xffts_links_teslx6 = os.path.dirname(path_xffts_teslx6) + xffts_links_name
 
 	#layoutp = [[sg.Text('')],]
 	#winp = sg.Window('updating symlinks...',layoutp,size=(300,10),disable_close=True,default_element_size=(20,1),auto_size_text=False,finalize=True)

@@ -47,11 +47,12 @@ def plotspecall(obj):
 		POS = '{x:1.3f}",{y:1.3f}"'.format(x=obj.fitloc[0], y=obj.fitloc[1])
 		FWHM = '{x:1.3f}"x{y:1.3f}"'.format(x=obj.fitbeam[0], y=obj.fitbeam[1])
 		FWHM_corr = '{x:1.3f}"x{y:1.3f}"'.format(x=obj.fitbeam_corr[0], y=obj.fitbeam_corr[1])
-		titleinfo = 'ID'+str(obj.obsnum)+' Pos:'+POS+' FWHM:'+FWHM+' FWHM(corr):'+FWHM_corr
-		plt.title(titleinfo)
+		titleinfo1 = 'ID'+str(obj.obsnum)+' Pos:'+POS+' FWHM:'+FWHM+' FWHM(corr):'+FWHM_corr
+		plt.title(titleinfo1)
 
 		plt.subplot(4,1,2)
-		plt.title('Sourcename: '+obj.srcename)
+		titleinfo2 = 'Sourcename: '+obj.srcename + 'Peak: ' +'{0:5.8}'.format(obj.fitpeak) + '('+'{0:5.8}'.format(obj.fitpeak_err)+') K'
+		plt.title(titleinfo2)
 
 		plt.subplots_adjust(wspace=0.0, hspace=0.62,top=0.95,bottom=0.1)
 		fig = obj.outputfig

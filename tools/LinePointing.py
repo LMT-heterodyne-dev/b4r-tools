@@ -144,6 +144,9 @@ class LinePointing :
         self.fline  = ncfile['Header.B4r.LineFreq'][0]
         self.srcename = ncprop['srcname']
 
+        self.dAZuser = ncfile['Header.PointModel.AzUserOff'][0]
+        self.dELuser = ncfile['Header.PointModel.ElUserOff'][0]
+
         self.antonpos = bufpos == 0
         self.antoffpos= bufpos == 1
 
@@ -156,7 +159,7 @@ class LinePointing :
                   nIF = 4,
                   sbdef  = [ 'lsb', 'usb', 'lsb', 'usb' ],
                   poldef = [ 'pol1', 'pol1', 'pol2', 'pol2' ],
-                  usePol= ['pol1', 'pol2'],
+                  usePol= ['pol1','pol1'],
                   useFreq=  129.36324 ,  #GHz
                   useVel =  0 ,        #km/s
                   useVelRange = 500,     #km/s
@@ -247,6 +250,7 @@ class LinePointing :
     #                print( ' : correction failed')
 
             i_needscorrect, = np.where(ntpsync_work==False)
+            #try:
             print('  step2')
             for i in tqdm(i_needscorrect[::-1]) :
                 if i> ndat -1 : continue
@@ -264,6 +268,9 @@ class LinePointing :
     #                print( 'corrected : {s}'.format(s=tmincr))
 
     #        print('### stats ###')
+            #except:
+            #    print('step2 fail')
+
 
             ncorrupted = ntpsync.tolist().count(False)
             nrecovered = ((ntpsync == False) & (ntpsync_work == True)).tolist().count(True)
@@ -476,75 +483,7 @@ class LinePointing :
 
         self.chrangeMap = [ ch_fm, ch_to ]
 
-    def showContSpectrum(self, nTimeAvg=16, vrange =[ None, None], sig_thres=3.) :
-
-        ##
-
-        if vrange ==[ None, None] :
-            fitch = [ 0, len(self.freq)-1 ]
-        else :
-#            frange = self.f_use * ( 1 - np.array(vrange)/2.99792458e5 )
-            fitch = sorted([ np.abs( self.vel - vrange[0]).argmin(), np.abs( self.vel - vrange[1]).argmin() ])
-#            print(frange, fitch)
-        ## mk time average
-
-        specTimeAvg = binnedArray(self.onoffspecs, nTimeAvg) #np.array( [ np.average( self.onoffspecs[:,i*nTimeAvg:(i+1)*nTimeAvg,:], axis=1) for i in range(int(self.onoffspecs.shape[1]/nTimeAvg))])
-        specMax = np.max(specTimeAvg, axis=0)
-
-        ##
-        #fig = plt.figure(figsize=(8,4))
-        plt.subplot(4,1,1)
-        for i in range(specMax.shape[0]):
-            plt.step( self.vel, specMax[i], where='mid')
-        plt.xlabel('V_topo (km/s)')
-        plt.legend(self.p_use)
-
-        ##
-        # fitting
-
-        specAvg = np.average( specMax[:, fitch[0]:fitch[1]+1], axis=0)
-        bl = astropy.stats.biweight_location(specAvg)
-        specx, specy = np.arange(fitch[0],fitch[1]+1), specAvg #- bl
-        noise = astropy.stats.biweight_scale(specAvg)
-
-        valid_ix = specy > noise* sig_thres
-        pkpos_est  = sum( (specx*specy)[valid_ix] ) / sum(specy[valid_ix])
-        sigm_est = np.sqrt(np.sum( ((specx - pkpos_est)**2 * specy)[valid_ix]) / np.sum(specy[valid_ix]))
-        pkval_est  = np.max(specy[valid_ix])
-
-        #print(pkpos_est, sigm_est, pkval_est)
-        popt, trash = scipy.optimize.curve_fit( gaussianFunc, specx, specy, p0=(pkval_est, pkpos_est, sigm_est))
-
-        plt.subplot(4,1,2)
-        plt.step( self.vel[fitch[0]:fitch[1]+1], specy, where='mid')
-        yrange = (min(specy), max(specy))
-        plt.ylim( (yrange[0]*1.1 - yrange[1]*0.1, yrange[1]*1.1 - yrange[0]*0.1 ))
-#        plt.plot ( self.vel[fitch[0]:fitch[1]+1], gaussianFunc(specx, *popt), c='r')
-#        plt.plot ( self.vel[fitch[0]:fitch[1]+1], gaussianFunc(specx, *popt), c='r')
-        plt.xlabel('V_topo (km/s)')
-        plt.grid()
-
-        ch_fm = int(popt[1] - 2*abs(popt[2]))
-        ch_to = int(popt[1] + 2*abs(popt[2])) + 1
-
-        plt.fill_between( self.vel[ch_fm:ch_to], np.average(specMax[:,ch_fm:ch_to],axis=0)-bl, color='r', step='mid')
-
-        dvCH = self.vel[1]-self.vel[0]
-        dfCH = self.freq[1]-self.freq[0]
-
-        #
-        print('### spec fitting result :')
-        print('   peak/rms   = {f:1.2}'.format( f= popt[0]/noise ))
-        print('   location   = {f:3.5}GHz' .format( f= self.freq[0]+ popt[1]*dfCH))
-        print('              = {f:3.5}km/s'.format( f= self.vel[0]+ popt[1]*dvCH))
-        print('   FWHM       = {f:3.2}MHz' .format( f= abs(popt[2]*1.e3*dfCH)*2.35))
-        print('              = {f:3.2}km/s'.format( f= abs(popt[2]*dvCH)*2.35))
-
-        self.chrangeMap = [ ch_fm, ch_to ]
-
-
-
-    def mkMap(self, size=[None, None], grid=[1.,1.], smooth=[10.,10.], velRange=[None, None], searchRadius=2. , mode='int'):
+    def mkMap(self, size=[None, None], grid=[1.,1.], smooth=[5.,5.], velRange=[None, None], searchRadius=2. , mode='int'):
 
 
         #################
@@ -669,134 +608,6 @@ class LinePointing :
         plt.xlabel('dAz (arcsec)')
         plt.ylabel('dEl (arcsec)')
 
-
-    def mkContMap(self, size=[None, None], grid=[1.,1.], smooth=[10.,10.], velRange=[None, None], searchRadius=2. , mode='int'):
-
-
-        #################
-        ### making map
-
-        v0   = self.vel[0]
-        dvCH = self.vel[1]-self.vel[0]
-        if velRange !=[None,None] :
-            chrangeMap = sorted([ int((v-v0)/dvCH) for v in velRange])
-            chrangeMap[1] +=1
-        else :
-            self.chrangeMap = [0,127]
-            chrangeMap = self.chrangeMap
-
-        print('### mapping channel range = {f}'.format(f=self.chrangeMap))
-
-
-        self.smoothFWHM = np.array(smooth)
-        smoothSTD = self.smoothFWHM/2.35
-
-        ##########
-        # determine mapping range
-
-        mpx = self.azon_intrp
-        mpy = self.elon_intrp
-
-        if size[0] == None :
-            xmax, xmin = np.floor(mpx.max()/grid[0]) * grid[0],  np.floor(mpx.min()/grid[0])*grid[0]
-        else :
-            xmax, xmin = size[0]/2., -size[0]/2.
-
-        if size[1] == None :
-            ymax, ymin = np.floor(mpy.max()/grid[1]) * grid[1],  np.floor(mpy.min()/grid[1])*grid[1]
-        else :
-            ymax, ymin = size[1]/2., -size[1]/2.
-
-        nx = int(abs(xmax-xmin)/grid[0]) + 1
-        ny = int(abs(ymax-ymin)/grid[1]) + 1
-
-        nz = self.chrangeMap[1] - self.chrangeMap[0]
-
-
-        ###########
-        # create axis
-
-        xaxis = np.linspace( xmin, xmax, num=nx, endpoint=True)
-        yaxis = np.linspace( ymin, ymax, num=ny, endpoint=True)
-
-        ###########
-        #
-
-        imagemap  = np.zeros((nx,ny,nz))
-        weightmap = np.zeros((nx,ny))
-
-        ###########
-        # gaussian
-
-        gsbeam = lambda x, w :  np.exp( -(x/w)**2/2.)
-        obs_sp = np.sum(self.onoffspecs[:,:, self.chrangeMap[0]:self.chrangeMap[1]], axis=1)
-        kpix    = float(self.smoothFWHM[0])/grid[0], float(self.smoothFWHM[1])/grid[1]
-        search  = int(kpix[0]*searchRadius), int(kpix[1]*searchRadius)
-        print(kpix, search)
-
-        ##########
-
-        for i in tqdm(range(obs_sp.shape[0])):
-            xix = np.abs( mpx[i] - xaxis).argmin()
-            yix = np.abs( mpy[i] - yaxis).argmin()
-
-            xr = max([xix-search[0],0]), min([xix+search[0],nx-1])
-            yr = max([yix-search[1],0]), min([yix+search[1],ny-1])
-
-            wtx = gsbeam( xaxis[xr[0]:xr[1]] - mpx[i], smoothSTD[0])[:,np.newaxis]
-            wty = gsbeam( yaxis[yr[0]:yr[1]] - mpy[i], smoothSTD[1])[:,np.newaxis]
-
-            wtmap_i = np.dot(wtx, wty.T)
-            weightmap[xr[0]:xr[1],yr[0]:yr[1]] += wtmap_i
-
-            imagemap_i = wtmap_i[:,:,np.newaxis] * obs_sp[i]
-            imagemap[xr[0]:xr[1],yr[0]:yr[1]] += imagemap_i
-
-            #print(xix, yix, xr, yr)
- #           plt.subplot(1,2,1); plt.imshow( np.rot90(wtmap_i), cmap='jet')
- #           plt.subplot(1,2,2); plt.imshow( np.rot90(weightmap), cmap='jet')
-
-        masked = (weightmap==0.)
-
-        weightmap[masked] = 0.1
-
-        self.imCube  = imagemap/weightmap[:,:,np.newaxis]
-        if mode == 'int' :   #integrated intensity
-            self.imObj   = np.sum(self.imCube,axis=2) * abs(dvCH)
-        elif mode == 'peak' :  #peak intensity
-            self.imObj   = np.max    (self.imCube,axis=2)
-        else :
-            raise Exception(f'unsupported mode {mode}')
-
-#        self.imObj[masked] = None
-        self.imObj = self.imObj - astropy.stats.biweight_location( self.imObj[masked==False] )
-        self.obspk = np.max(self.imObj)
-        obspix= np.where( self.imObj == self.obspk )
-        self.obspos= xaxis[obspix[0][0]], yaxis[obspix[1][0]]
-        self.obsrms= astropy.stats.biweight_scale( self.imObj[masked==False] )
-        self.obssky= astropy.stats.biweight_location( self.imObj[masked==False] )
-        self.xaxis=xaxis
-        self.yaxis=yaxis
-        self.mask = masked
-
-        print("   pos        = {f:}".format(f=self.obspos))
-        print("   pk         = {f:.2f}".format(f=self.obspk))
-        print("   sky        = {f:.2f}".format(f=self.obssky))
-        print("   source/rms = {f:.2f}".format(f=self.obspk/self.obsrms))
-        print("   source/sky = {f:.2f}".format(f=self.obspk/self.obssky))
-
-        #fit = plt.figure(figsize=(12,5))
-        plt.subplot(2,2,1)
-        plt.imshow(np.rot90(self.imObj)[:,::-1], extent=(xmax, xmin, ymin, ymax), vmin=self.obssky, vmax=self.obspk, cmap='jet')
-        plt.title('{name}'.format(name={'int':'Integrated Intensity', 'peak':'peak intensity'}[mode]))
-        plt.xlabel('dAz (arcsec)')
-        plt.ylabel('dEl (arcsec)')
-        plt.subplot(2,2,2)
-        plt.imshow(np.rot90(weightmap)[:,::-1], extent=(xmax, xmin, ymin, ymax), cmap='jet')
-        plt.title('weight')
-        plt.xlabel('dAz (arcsec)')
-        plt.ylabel('dEl (arcsec)')
-
     def mkFit(self) :
         xmax,xmin = np.max(self.xaxis), np.min(self.xaxis)
         ymax,ymin = np.max(self.yaxis), np.min(self.yaxis)
@@ -805,7 +616,7 @@ class LinePointing :
             10/2.35, 10/2.35,
             self.obspk , self.obssky )
 
-        popt, trash = scipy.optimize.curve_fit( modelBeam, np.meshgrid(self.xaxis,self.yaxis), self.imObj.flatten() , p0=p0)
+        popt, trash = scipy.optimize.curve_fit( modelBeam, np.meshgrid(self.xaxis,self.yaxis), self.imObj.flatten() , p0=p0, maxfev=100000)
         modelim = modelBeam(np.meshgrid(self.xaxis, self.yaxis), *popt).reshape(self.imObj.shape)
 
         #fit = plt.figure(figsize=(12,5))
@@ -832,6 +643,8 @@ class LinePointing :
         self.fitloc  = np.array([popt[0], popt[1]])
         self.fitbeam = np.array([popt[2], popt[3]])*2.35
         self.fitbeam_corr = np.sqrt( self.fitbeam**2 - self.smoothFWHM**2)
+        self.fitpeak = (popt[4] - popt[5])
+        self.fitpeak_err = np.sqrt(np.sqrt(np.diag(trash))[4]**2 + np.sqrt(np.diag(trash))[5]**2)
         print('   location       : {x:1.3f}",  {y:1.3f}"'.format(x=self.fitloc[0], y=self.fitloc[1]))
         print('   FWHM(raw)      : {x:1.3f}" x {y:1.3f}"'.format(x=self.fitbeam[0], y=self.fitbeam[1]))
         print('   FWHM(corrected): {x:1.3f}" x {y:1.3f}"'.format(x=self.fitbeam_corr[0], y=self.fitbeam_corr[1]))
@@ -871,6 +684,8 @@ class LinePointing :
         self.fitloc  = np.array([popt[0], popt[1]])
         self.fitbeam = np.array([popt[2], popt[3]])*2.35
         self.fitbeam_corr = np.sqrt( self.fitbeam**2 - self.smoothFWHM**2)
+        self.fitpeak = (popt[4] - popt[5])
+        self.fitpeak_err = np.sqrt(np.sqrt(np.diag(trash))[4]**2 + np.sqrt(np.diag(trash))[5]**2)
         print('   location       : {x:1.3f}",  {y:1.3f}"'.format(x=self.fitloc[0], y=self.fitloc[1]))
         print('   FWHM(raw)      : {x:1.3f}" x {y:1.3f}"'.format(x=self.fitbeam[0], y=self.fitbeam[1]))
         print('   FWHM(corrected): {x:1.3f}" x {y:1.3f}"'.format(x=self.fitbeam_corr[0], y=self.fitbeam_corr[1]))
