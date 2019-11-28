@@ -11,7 +11,7 @@ Python environment
 $ cd b4r-tools
 $ pip install pipenv
 $ pipenv install
-$ pipenv -venv
+$ pipenv --venv
 ```
 
 You need to change parameters in b4rtools. Then,
