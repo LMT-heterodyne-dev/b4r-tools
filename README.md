@@ -1,8 +1,9 @@
 # b4r-tools
 :rocket:Tools for B4R/LMT data reduction.
-<font color="Red">
+
+<span style="color:red">
   The scripts are still under development. We are not responsible for the outputs now.
-</font>
+</span>
 
 **************************************************************
 Python environment
